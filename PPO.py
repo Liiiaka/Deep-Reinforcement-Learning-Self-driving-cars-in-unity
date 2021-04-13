@@ -45,31 +45,49 @@ class Agent:
 
     def _get_action(self, state, is_test=False):
         # get the network output
-        logits = self.actor(state)
-        if tf.is_tensor(logits):
-            logits = logits.numpy()
+        action1, action2, action3 = self.actor(state)
+        if tf.is_tensor(action1):
+            action1 = action1.numpy()
+            action2 = action2.numpy()
+            action3 = action3.numpy()
 
         local_epsilon = 0 if is_test else self.epsilon
         if random.random() > local_epsilon:
             # greedy selection of actions
-            actions = np.argmax(logits, axis=-1)
-            log_probs = np.asarray([np.log(local_epsilon + CONST_TO_PREVENT_DIVISION_BY_ZERO)] * logits.shape[0],
+            actual_action1 = np.argmax(action1, axis=-1)
+            log_probs1 = np.asarray([np.log(local_epsilon + CONST_TO_PREVENT_DIVISION_BY_ZERO)] * self.env.action_space.nvec[0],
                                   dtype=np.float32)
-            pass
+
+            actual_action2 = np.argmax(action2, axis=-1)
+            log_probs2 = np.asarray([np.log(local_epsilon + CONST_TO_PREVENT_DIVISION_BY_ZERO)] * self.env.action_space.nvec[1],
+                                  dtype=np.float32)
+
+            actual_action3 = np.argmax(action3, axis=-1)
+            log_probs3 = np.asarray([np.log(local_epsilon + CONST_TO_PREVENT_DIVISION_BY_ZERO)] * self.env.action_space.nvec[2],
+                                  dtype=np.float32)
+            
         else:
             # selection any action
-            actions = [random.ran]
+            actual_action1 = np.random.randint(self.env.action_space.nvec[0])
+            actual_action2 = np.random.randint(self.env.action_space.nvec[1])
+            actual_action3 = np.random.randint(self.env.action_space.nvec[2])
 
-            pass
+            log_probs1 = np.asarray([np.log(1 - local_epsilon)] * self.env.action_space.nvec[0], dtype=np.float32)
+            log_probs2 = np.asarray([np.log(1 - local_epsilon)] * self.env.action_space.nvec[1], dtype=np.float32)
+            log_probs3 = np.asarray([np.log(1 - local_epsilon)] * self.env.action_space.nvec[2], dtype=np.float32)
+
+        return (actual_action1, actual_action2, actual_action3), (log_probs1, log_probs2, log_probs3)
 
     def _create_actor(self):
         state_input = Input(shape=(self.observation_space,))
         x = Dense(256, activation='tanh')(state_input)
         x = Dense(256, activation='tanh')(x)
         x = Dense(256, activation='tanh')(x)
-        out_actions = Dense(self.env.action_space.n, activation='softmax', name='output')(x)
+        out_actions = Dense(self.env.action_space.nvec[0], activation='softmax', name='output')(x)
+        out_actions1 = Dense(self.env.action_space.nvec[1], activation='softmax', name='output2')(x)
+        out_actions2 = Dense(self.env.action_space.nvec[2], activation='softmax', name='output3')(x)
 
-        model = Model(input=[state_input], outputs=[out_actions])
+        model = Model(input=[state_input], outputs=[out_actions, out_actions1, out_actions2])
         print("Actor Model: ")
         model.summary()
 
