@@ -13,8 +13,9 @@ class Buffer:
         self.next_state_buffer = np.zeros(shape=(self.capacity, num_states))
         self.reward_buffer = np.zeros(shape=(self.capacity,))
         self.dones_buffer = np.zeros(shape=(self.capacity,))
+        self.log_prob_buffer = np.zeros(shape=(self.capacity, num_actions))
 
-    def add(self, state, action, reward, next_state, done):
+    def add(self, state, action, reward, next_state, log_prob, done):
         """Adds a new sample to the buffer."""
         index = self.current_index % self.capacity
         self.state_buffer[index] = state
@@ -22,6 +23,7 @@ class Buffer:
         self.next_state_buffer[index] = next_state
         self.reward_buffer[index] = reward
         self.dones_buffer[index] = done
+        self.log_prob_buffer[index] = log_prob
 
         self.current_index = self.current_index + 1
 
@@ -32,6 +34,7 @@ class Buffer:
         self.next_state_buffer = np.zeros_like(self.next_state_buffer)
         self.reward_buffer = np.zeros_like(self.reward_buffer)
         self.dones_buffer = np.zeros_like(self.dones_buffer)
+        self.log_prob_buffer = np.zeros_like(self.log_prob_buffer)
 
         self.current_index = 0
 
@@ -42,5 +45,6 @@ class Buffer:
                                                       self.action_buffer[:index],
                                                       self.next_state_buffer[:index],
                                                       self.reward_buffer[:index],
-                                                      self.dones_buffer[:index]))
+                                                      self.dones_buffer[:index],
+                                                      self.log_prob_buffer[:index]))
         return dataset

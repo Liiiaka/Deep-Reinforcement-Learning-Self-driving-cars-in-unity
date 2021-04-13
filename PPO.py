@@ -32,16 +32,27 @@ class Agent:
     def train(self, num_epochs):
         for e in range(1, num_epochs+1):
             # sample trajectories
-            samples = self._get_trajectories()
+            self._collect_samples()
+            samples = self.buffer.get_dataset()
+            samples = samples.batch(self._batch_size)
+            for state, actions, next_state, reward, done, log_probs in samples:
+                reward_prediction = self.critic(state)
+                advantage = reward - reward_prediction
+
             #
             pass
 
-    def _get_trajectories(self):
+    def _collect_samples(self):
         self.buffer.reset()
         state = np.reshape(self.env.reset(), (1, self._observation_space))
         for _ in range(self.buffer_size):
-            action = self._get_action(state)
-            pass
+            actions, log_probs = self._get_action(state)
+            next_state, reward, done, info = self.env.step(actions)
+            self.buffer.add(state, actions, reward, next_state, log_probs, done)
+            if done:
+                next_state = self.env.reset()
+            state = next_state
+            
 
     def _get_action(self, state, is_test=False):
         # get the network output
@@ -104,6 +115,27 @@ class Agent:
         model.summary()
 
         return model
+
+    @tf.function
+    def train_policy_network(agent, state, actions, log_probs, advantage, optimizer):
+        """Trains the policy network with PPO clipped loss."""
+
+        with tf.GradientTape() as tape:
+            # calculate the probability ratio
+            new_log_prob = self.flowing_log_prob(state, action)
+            prob_ratio = tf.exp(new_log_prob - tf.cast(log_prob, dtype=tf.float32))
+
+            # calculate the loss - PPO
+            unclipped_loss = prob_ratio * tf.expand_dims(advantage, 1)
+            clipped_loss = tf.clip_by_value(prob_ratio, 1 - CLIPPING_VALUE, 1 + CLIPPING_VALUE) * tf.expand_dims(advantage, 1)
+            loss = -tf.reduce_mean(tf.minimum(unclipped_loss, clipped_loss))
+            gradients = tape.gradient(loss, agent.model.actor.trainable_variables)
+
+        optimizer.apply_gradients(zip(gradients, agent.model.actor.trainable_variables))
+        return loss
+
+    def flowing_log_prob(state, action):
+        logits = self.actor(state)
 
     @staticmethod
     def proximal_policy_optimization_loss(advantage, old_prediction):
