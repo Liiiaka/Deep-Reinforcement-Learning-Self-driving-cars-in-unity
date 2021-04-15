@@ -14,7 +14,7 @@ class ContinuousActorCriticModel(Model):
     """Implementation of an actor-critic model with a continuous action space."""
 
     def __init__(self, num_observations, num_actions, actor_hidden_units=[256, 256, 256], critic_hidden_units=[128, 128],
-                 actor_activation_function='relu', critic_activation_function='relu'):
+                 actor_activation_function='swish', critic_activation_function='swish'):
         super(ContinuousActorCriticModel, self).__init__()
 
         # initialize the spaces
