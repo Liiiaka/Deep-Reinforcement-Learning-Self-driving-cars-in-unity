@@ -9,6 +9,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MSE
+import csv
+import time
 
 from gym import Env
 
@@ -27,6 +29,7 @@ class Trainer(ABC):
         self._saving_episodes = 0
         self._save_intermediate_model = False
         self._save_final_model = False
+        self._log_file = f"log{int(time.time())}.csv"
 
     def set_loading_params(self, path_to_saved_model):
         """Sets the path to the model that should be loaded."""
@@ -94,6 +97,8 @@ class PPOTrainer(Trainer):
 
         actor_losses = []
         critic_losses = []
+        rewards = []
+        not_dones = []
         for state, action, next_state, reward, not_done, log_prob, value_estimate in batches:
             value = reward + not_done * self._gamma * self._policy.get_value_estimate(next_state)
             advantage = value - value_estimate
@@ -103,6 +108,14 @@ class PPOTrainer(Trainer):
 
             actor_losses.append(actor_loss)
             critic_losses.append(critic_loss)
+            rewards.append(reward)
+            not_dones.append(not_done)
+        self._log_data(rewards, not_dones)
+        
+    def _log_data(self, rewards, not_dones):
+        with open(self._log_file, 'w+', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+            writer.writerow([str(sum(sum(rewards).numpy()))])
 
     def _collect_data(self):
         self._buffer.reset()
