@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dense
@@ -25,7 +26,10 @@ class ContinuousActorCriticModel(Model):
         self.actor = self._create_actor(actor_hidden_units, actor_activation_function)
         self.critic = self._create_critic(critic_hidden_units, critic_activation_function)
 
+        self._scales = np.ones((self._num_obs,), dtype=np.float32)
+
     def __call__(self, state_batch):
+        state_batch = self._scale_network_input(state_batch)
         mu_batch, sigma_batch = self.actor(state_batch)
         value_estimate_batch = self.critic(state_batch)
         return {'mu': tf.squeeze(mu_batch), 'sigma': tf.squeeze(sigma_batch), 'value_estimate': tf.squeeze(value_estimate_batch)}
@@ -69,3 +73,15 @@ class ContinuousActorCriticModel(Model):
         # create the output layer
         value_estimate = Dense(1, name='critic_value_estimate', kernel_initializer=self._initializer)(next_input)
         return Model(inputs=state_input, outputs=value_estimate)
+
+    def _scale_network_input(self, input):
+        """Scales the input with the currently highest received absolute input."""
+        if tf.is_tensor(input):
+            input = input.numpy()
+        self._update_scales(input)
+        return input / self._scales
+
+    def _update_scales(self, input):
+        """Updates the scales"""
+        batch_max_vals = np.abs(input).max(axis=0)
+        self._scales[batch_max_vals > self._scales] = batch_max_vals[batch_max_vals > self._scales]

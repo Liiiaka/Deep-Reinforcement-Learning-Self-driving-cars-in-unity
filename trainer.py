@@ -117,7 +117,6 @@ class PPOTrainer(Trainer):
             state = np.reshape(next_state, (1, -1))
         return self._buffer.get_dataset()
 
-    @tf.function
     def _update_actor(self, state, action, log_prob, advantage):
         """Trains the policy network with PPO clipped loss."""
 
@@ -136,7 +135,6 @@ class PPOTrainer(Trainer):
         self._actor_optimizer.apply_gradients(zip(gradients, self._actor_trainable_vars))
         return loss
 
-    @tf.function
     def _update_critic(self, state, value):
         """Trains the value network with the mean squared error between the true and estimated value."""
 
