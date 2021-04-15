@@ -3,6 +3,10 @@ from pathlib import Path
 import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.initializers import HeNormal
+
+
+SMALL_CONST = 1e-5
 
 
 class ContinuousActorCriticModel(Model):
@@ -17,6 +21,7 @@ class ContinuousActorCriticModel(Model):
         self._num_actions = num_actions
 
         # create the actor and critic
+        self._initializer = initializer = HeNormal()
         self.actor = self._create_actor(actor_hidden_units, actor_activation_function)
         self.critic = self._create_critic(critic_hidden_units, critic_activation_function)
 
@@ -43,11 +48,11 @@ class ContinuousActorCriticModel(Model):
             units = actor_hidden_units[i]
             activation = actor_activation_function
             name = f'actor_dense_{i}'
-            next_input = Dense(units, activation=activation, name=name)(next_input)
+            next_input = Dense(units, activation=activation, name=name, kernel_initializer=self._initializer)(next_input)
 
         # create the output layers
-        mu = Dense(self._num_actions, activation='tanh', name='actor_mu')(next_input)
-        sigma = tf.exp(Dense(self._num_actions, activation=None, name='actor_sigma')(next_input))
+        mu = Dense(self._num_actions, activation='tanh', name='actor_mu', kernel_initializer=self._initializer)(next_input)
+        sigma = tf.exp(Dense(self._num_actions, activation=None, name='actor_sigma', kernel_initializer=self._initializer)(next_input)) + SMALL_CONST
         return Model(inputs=state_input, outputs=[mu, sigma])
 
     def _create_critic(self, critic_hidden_units, critic_activation_function):
@@ -59,8 +64,8 @@ class ContinuousActorCriticModel(Model):
             units = critic_hidden_units[i]
             activation = critic_activation_function
             name = f'critic_dense_{i}'
-            next_input = Dense(units, activation=activation, name=name)(next_input)
+            next_input = Dense(units, activation=activation, name=name, kernel_initializer=self._initializer)(next_input)
 
-        # create the output layers
-        value_estimate = Dense(1, name='critic_value_estimate')(next_input)
+        # create the output layer
+        value_estimate = Dense(1, name='critic_value_estimate', kernel_initializer=self._initializer)(next_input)
         return Model(inputs=state_input, outputs=value_estimate)

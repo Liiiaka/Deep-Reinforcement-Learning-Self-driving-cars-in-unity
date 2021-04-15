@@ -11,7 +11,7 @@ from trainer import PPOTrainer
 
 def main():
     config_channel = EngineConfigurationChannel()
-    config_channel.set_configuration_parameters(width=1800, height=900, time_scale=6.0)
+    config_channel.set_configuration_parameters(width=1800, height=900, time_scale=10.0)
 
     # create the environment
     env_directory = "./unity_envs/PyTrainEnv_RandomParkingLots_ContinuousActions"
