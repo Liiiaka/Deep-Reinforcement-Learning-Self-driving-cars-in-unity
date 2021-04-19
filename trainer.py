@@ -11,6 +11,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MSE
 import csv
 import time
+from keras import backend as K
 
 from gym import Env
 
@@ -31,9 +32,11 @@ class Trainer(ABC):
         self._save_final_model = False
         self._log_file = f"log{int(time.time())}.csv"
 
+
     def set_loading_params(self, path_to_saved_model):
         """Sets the path to the model that should be loaded."""
         self._path_to_saved_model = path_to_saved_model
+
 
     def set_saving_params(self, path_to_saving_dir: str, saving_episodes: int = 10, save_final_model: bool = True):
         """Sets the parameters to save the model."""
@@ -43,6 +46,7 @@ class Trainer(ABC):
 
         self._saving_path = Path(os.getcwd() + path_to_saving_dir)
         self._saving_path.mkdir(parents=True, exist_ok=True)
+
 
     def train(self):
         """Training loop."""
@@ -92,6 +96,8 @@ class PPOTrainer(Trainer):
         self._actor_trainable_vars = self._policy.get_trainable_variables('actor')
         self._critic_trainable_vars = self._policy.get_trainable_variables('critic')
 
+
+
     def _train_one_episode(self):
         batches = self._collect_data()
 
@@ -110,17 +116,23 @@ class PPOTrainer(Trainer):
             critic_losses.append(critic_loss)
             rewards.append(reward)
             not_dones.append(not_done)
+        print("Reward:", sum(sum(rewards).numpy()))
         self._log_data(rewards, not_dones)
+
+
         
     def _log_data(self, rewards, not_dones):
         with open(self._log_file, 'w+', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             writer.writerow([str(sum(sum(rewards).numpy()))])
 
+
+
     def _collect_data(self):
         self._buffer.reset()
         state = np.reshape(self._env.reset(), (1, -1))
         for i in range(self._sample_size):
+            #self._env.render()
             output = self._policy.get_action(state, True)
             next_state, reward, done, _ = self._env.step(output['action'])
 
@@ -130,23 +142,30 @@ class PPOTrainer(Trainer):
             state = np.reshape(next_state, (1, -1))
         return self._buffer.get_dataset()
 
-    def _update_actor(self, state, action, log_prob, advantage):
+
+
+    def _update_actor(self, state, action, log_prob, advantage, noise=1.0):
         """Trains the policy network with PPO clipped loss."""
 
         with tf.GradientTape() as tape:
             # calculate the probability ratio
             new_log_prob = self._policy.get_log_prob(state, action)
-            prob_ratio = tf.exp(new_log_prob - tf.cast(log_prob, dtype=tf.float32))
+
+            log_prob = tf.cast(log_prob, dtype=tf.float32) + 1e-10
+
+            prob_ratio = tf.exp(new_log_prob / log_prob)
 
             # calculate the loss - PPO
             unclipped_loss = prob_ratio * tf.expand_dims(advantage, 1)
             clipped_loss = tf.clip_by_value(prob_ratio, 1 - self._clipping_value, 1 + self._clipping_value) * tf.expand_dims(
                 advantage, 1)
             loss = -tf.reduce_mean(tf.minimum(unclipped_loss, clipped_loss))
-            gradients = tape.gradient(loss, self._actor_trainable_vars)
+            gradients = tape.gradient(loss, self._policy.get_trainable_variables('actor'))
 
-        self._actor_optimizer.apply_gradients(zip(gradients, self._actor_trainable_vars))
+        self._actor_optimizer.apply_gradients(zip(gradients, self._policy.get_trainable_variables('actor')))
         return loss
+
+
 
     def _update_critic(self, state, value):
         """Trains the value network with the mean squared error between the true and estimated value."""
@@ -154,9 +173,9 @@ class PPOTrainer(Trainer):
         with tf.GradientTape() as tape:
             value_pred = self._policy.get_value_estimate(state)
             loss = MSE(value, value_pred)
-            gradients = tape.gradient(loss, self._critic_trainable_vars)
+            gradients = tape.gradient(loss, self._policy.get_trainable_variables('critic'))
 
-        self._critic_optimizer.apply_gradients(zip(gradients, self._critic_trainable_vars))
+        self._critic_optimizer.apply_gradients(zip(gradients, self._policy.get_trainable_variables('critic')))
         return loss
 
 
