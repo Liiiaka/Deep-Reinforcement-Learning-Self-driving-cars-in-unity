@@ -52,14 +52,19 @@ class Trainer(ABC):
         """Training loop."""
         # load the last model if specified
         self._load_model()
+        try:
+            for episode in range(1, self._episodes):
+                self._train_one_episode()
 
-        for episode in range(1, self._episodes):
-            self._train_one_episode()
-
-            # save intermediate model
-            if self._save_intermediate_model and episode % self._saving_episodes == 0:
+                # save intermediate model
+                if self._save_intermediate_model and episode % self._saving_episodes == 0:
+                    saving_path = os.path.join(str(self._saving_path), f'epoch_{episode}')
+                    self._save_model(saving_path)
+        except:
+            if self._save_intermediate_model:
                 saving_path = os.path.join(str(self._saving_path), f'epoch_{episode}')
                 self._save_model(saving_path)
+            exit(0)
 
         if self._save_final_model:
             saving_path = os.path.join(str(self._saving_path), 'final')

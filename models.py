@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.initializers import HeNormal
+from tensorflow.keras.models import load_model
 
 import os
 
@@ -47,14 +48,13 @@ class ContinuousActorCriticModel(Model):
 
     def load_model(self, load_path):
         directories = [x.split("_") for x in os.listdir(load_path)]
-        print(directories)
         directories = [[x[0], int(x[1]), x[2]] for x in directories]
         directory = sorted(directories, key=lambda x: x[1], reverse=True)[0]
-        actor_directory = "epoch_" + str(directory[1]) + "_actor"
-        critic_directory = "epoch_" + str(directory[1]) + "_critic"
+        actor_directory = load_path + "\\epoch_" + str(directory[1]) + "_actor"
+        critic_directory = load_path + "\\epoch_" + str(directory[1]) + "_critic"
 
-        self.actor.load_model(actor_directory)
-        self.critic.load_model(critic_directory)
+        self.actor = load_model(actor_directory)
+        self.critic = load_model(critic_directory)
 
     def _create_actor(self, actor_hidden_units, actor_activation_function):
         state_input = Input(shape=self._num_obs)

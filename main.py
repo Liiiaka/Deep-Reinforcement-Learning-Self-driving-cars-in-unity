@@ -14,7 +14,7 @@ from trainer import PPOTrainer
 def main():
 
     config_channel = EngineConfigurationChannel()
-    config_channel.set_configuration_parameters(width=1800, height=900, time_scale=14.0)
+    config_channel.set_configuration_parameters(width=1800, height=900, time_scale=10.0)
 
     # create the environment
     env_directory = "C:\\Users\\wolff\Desktop\\MLAgents\\envs_continuous\\DeepReinforcementLearning"
@@ -30,10 +30,10 @@ def main():
     policy = ContinuousPolicy(model)
 
     # create the trainer
-    # trainer = PPOTrainer(policy, env, learning_rate=0.0001, learning_rate_critic=0.0001, episodes=30000, sample_size=40960, batch_size=4096, gamma=0.99, clipping_value=0.2)
-    # trainer.set_saving_params(f'\\saved_models\\{int(time.time())}', 50, True)
+    trainer = PPOTrainer(policy, env, learning_rate=0.0001, learning_rate_critic=0.0001, episodes=30000, sample_size=40960, batch_size=4096, gamma=0.99, clipping_value=0.2)
+    trainer.set_saving_params(f'\\saved_models\\{int(time.time())}', 50, True)
 
-    # trainer.train()
+    trainer.train()
 
 
 if __name__ == '__main__':
