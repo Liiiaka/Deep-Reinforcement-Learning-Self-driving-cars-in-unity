@@ -46,11 +46,15 @@ class ContinuousActorCriticModel(Model):
         self.critic.save(saving_path_critic)
 
     def load_model(self, load_path):
-        directories = [x[0].split("_") for x in os.walk(load_path)]
+        directories = [x.split("_") for x in os.listdir(load_path)]
+        print(directories)
         directories = [[x[0], int(x[1]), x[2]] for x in directories]
-        directory = sorted(directories, key=lambda x: x[1])[0]
-        directory = directory[0] + directory[1] + directory[2]
-        print(directory)
+        directory = sorted(directories, key=lambda x: x[1], reverse=True)[0]
+        actor_directory = "epoch_" + str(directory[1]) + "_actor"
+        critic_directory = "epoch_" + str(directory[1]) + "_critic"
+
+        self.actor.load_model(actor_directory)
+        self.critic.load_model(critic_directory)
 
     def _create_actor(self, actor_hidden_units, actor_activation_function):
         state_input = Input(shape=self._num_obs)
