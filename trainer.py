@@ -122,9 +122,14 @@ class PPOTrainer(Trainer):
 
         
     def _log_data(self, rewards, not_dones):
-        with open(self._log_file, 'w+', newline='') as csvfile:
-            writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            writer.writerow([str(sum(sum(rewards).numpy()))])
+        try:
+            with open(self._log_file, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                writer.writerow([str(int(sum(sum(rewards).numpy())))])
+        except FileExistsError:
+            with open(self._log_file, 'w+', newline='') as csvfile:
+                writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
+                writer.writerow([str(int(sum(sum(rewards).numpy())))])
 
 
 
@@ -151,9 +156,9 @@ class PPOTrainer(Trainer):
             # calculate the probability ratio
             new_log_prob = self._policy.get_log_prob(state, action)
 
-            log_prob = tf.cast(log_prob, dtype=tf.float32) + 1e-10
+            log_prob = tf.cast(log_prob, dtype=tf.float32)
 
-            prob_ratio = tf.exp(new_log_prob / log_prob)
+            prob_ratio = tf.exp(new_log_prob - log_prob)
 
             # calculate the loss - PPO
             unclipped_loss = prob_ratio * tf.expand_dims(advantage, 1)

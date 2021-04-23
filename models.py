@@ -6,6 +6,8 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.initializers import HeNormal
 
+import os
+
 
 SMALL_CONST = 1e-5
 
@@ -13,8 +15,8 @@ SMALL_CONST = 1e-5
 class ContinuousActorCriticModel(Model):
     """Implementation of an actor-critic model with a continuous action space."""
 
-    def __init__(self, num_observations, num_actions, actor_hidden_units=[256, 256, 256], critic_hidden_units=[128, 128],
-                 actor_activation_function='swish', critic_activation_function='swish'):
+    def __init__(self, num_observations, num_actions, actor_hidden_units=[128, 128, 128], critic_hidden_units=[128, 128, 128],
+                 actor_activation_function='relu', critic_activation_function='relu'):
         super(ContinuousActorCriticModel, self).__init__()
 
         # initialize the spaces
@@ -42,6 +44,13 @@ class ContinuousActorCriticModel(Model):
         saving_path_critic = Path(save_path + '_critic')
         saving_path_critic.mkdir(parents=True, exist_ok=True)
         self.critic.save(saving_path_critic)
+
+    def load_model(self, load_path):
+        directories = [x[0].split("_") for x in os.walk(load_path)]
+        directories = [[x[0], int(x[1]), x[2]] for x in directories]
+        directory = sorted(directories, key=lambda x: x[1])[0]
+        directory = directory[0] + directory[1] + directory[2]
+        print(directory)
 
     def _create_actor(self, actor_hidden_units, actor_activation_function):
         state_input = Input(shape=self._num_obs)

@@ -10,7 +10,7 @@ from gym.spaces import MultiDiscrete
 class Actor():
     """Implements the base actor."""
 
-    def __init__(self, observation_space, action_space, epsilon, hidden_units=[128, 128, 128], activation_function='tanh', clipping_value=0.2):
+    def __init__(self, observation_space, action_space, epsilon, hidden_units=[256, 256, 256], activation_function='tanh', clipping_value=0.2):
         if action_space is MultiDiscrete:
             self._model = MultiDiscreteActor(observation_space, action_space, hidden_units, activation_function)
         else:
