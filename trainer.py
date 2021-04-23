@@ -96,8 +96,6 @@ class PPOTrainer(Trainer):
         self._actor_trainable_vars = self._policy.get_trainable_variables('actor')
         self._critic_trainable_vars = self._policy.get_trainable_variables('critic')
 
-
-
     def _train_one_episode(self):
         batches = self._collect_data()
 
@@ -118,8 +116,6 @@ class PPOTrainer(Trainer):
             not_dones.append(not_done)
         print("Reward:", sum(sum(rewards).numpy()))
         self._log_data(rewards, not_dones)
-
-
         
     def _log_data(self, rewards, not_dones):
         try:
@@ -130,8 +126,6 @@ class PPOTrainer(Trainer):
             with open(self._log_file, 'w+', newline='') as csvfile:
                 writer = csv.writer(csvfile, delimiter=' ', quotechar='|', quoting=csv.QUOTE_MINIMAL)
                 writer.writerow([str(int(sum(sum(rewards).numpy())))])
-
-
 
     def _collect_data(self):
         self._buffer.reset()
@@ -146,8 +140,6 @@ class PPOTrainer(Trainer):
             self._buffer.add(state, output['action'], reward, next_state, not done, output['log_prob'], output['value_estimate'])
             state = np.reshape(next_state, (1, -1))
         return self._buffer.get_dataset()
-
-
 
     def _update_actor(self, state, action, log_prob, advantage, noise=1.0):
         """Trains the policy network with PPO clipped loss."""
@@ -170,8 +162,6 @@ class PPOTrainer(Trainer):
         self._actor_optimizer.apply_gradients(zip(gradients, self._policy.get_trainable_variables('actor')))
         return loss
 
-
-
     def _update_critic(self, state, value):
         """Trains the value network with the mean squared error between the true and estimated value."""
 
@@ -182,5 +172,3 @@ class PPOTrainer(Trainer):
 
         self._critic_optimizer.apply_gradients(zip(gradients, self._policy.get_trainable_variables('critic')))
         return loss
-
-
